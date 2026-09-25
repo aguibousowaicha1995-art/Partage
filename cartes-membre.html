@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Cartes de membre</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@600;700&family=Manrope:wght@500;600;700&family=IBM+Plex+Mono:wght@600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+:root {
+  --bg: #0f1210;
+  --surface: #171b18;
+  --surface-2: #1e2420;
+  --ink: #f2f0e6;
+  --muted: #93998e;
+  --line: #2a312b;
+  --gold: #c9a24b;
+  --gold-ink: #17140a;
+  --danger: #ff8a7a;
+  box-sizing: border-box;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+:root[data-theme="light"] {
+  --bg: #f3f0e6; --surface: #ffffff; --surface-2: #ece6d3; --ink: #191712; --muted: #6b6656;
+  --line: #ddd4bb; --gold: #93711f; --gold-ink: #ffffff; --danger: #b3261e;
+}
+html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--bg); color: var(--ink);
+  font-family: "Manrope", -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-size: 16px; line-height: 1.4; -webkit-tap-highlight-color: transparent;
+}
+.display { font-family: "Fraunces", Georgia, serif; }
+.mono { font-family: "IBM Plex Mono", ui-monospace, Menlo, monospace; }
+main { max-width: 520px; margin: 0 auto; padding: 20px 16px 56px; }
+
+h1 { font-size: 26px; font-weight: 700; letter-spacing: -0.01em; margin: 0; }
+.tag { color: var(--muted); font-size: 14px; margin-top: 4px; }
+header { margin-bottom: 18px; }
+
+.stat { background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 14px 16px; margin-bottom: 16px; display: flex; align-items: baseline; justify-content: space-between; }
+.stat b { font-size: 24px; font-family: "Fraunces", serif; font-weight: 700; }
+.stat span { color: var(--muted); font-size: 13px; }
+
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 22px; padding: 16px; margin-top: 14px; }
+.card h2 { font-size: 17px; font-weight: 700; margin: 0 0 14px; }
+
+.fieldset { margin-bottom: 12px; }
+.fieldset legend { font-size: 13px; font-weight: 700; color: var(--muted); padding: 0 0 8px; width: 100%; }
+.row { display: flex; gap: 8px; }
+.row + .row { margin-top: 8px; }
+input[type="text"], input[type="tel"] {
+  flex: 1; min-width: 0; font: inherit; font-size: 16px; color: var(--ink);
+  background: var(--surface-2); border: 1px solid var(--line); border-radius: 14px; padding: 13px 14px;
+}
+.primary {
+  width: 100%; font: inherit; font-weight: 700; border: 0; border-radius: 14px; padding: 15px;
+  background: var(--gold); color: var(--gold-ink); cursor: pointer; margin-top: 6px; font-size: 16px;
+}
+.form-error { color: var(--danger); font-size: 13px; margin-top: 10px; min-height: 16px; }
+.hint { color: var(--muted); font-size: 13px; margin: -4px 0 12px; }
+
+/* Carte de membre visuelle */
+.memcard {
+  position: relative; border-radius: 20px; padding: 22px 20px;
+  background: linear-gradient(155deg, #1c2119 0%, #12160f 70%);
+  border: 1px solid #35402f; color: #f2f0e6; overflow: hidden;
+}
+:root[data-theme="light"] .memcard { background: linear-gradient(155deg, #22271f 0%, #14170f 70%); }
+.memcard::before {
+  content: ""; position: absolute; inset: 0;
+  background: radial-gradient(circle at 100% 0%, rgba(201,162,75,.18), transparent 55%);
+  pointer-events: none;
+}
+.memcard .brand { font-size: 12px; letter-spacing: 0.04em; color: #c9a24b; font-weight: 700; }
+.memcard .name { font-family: "Fraunces", serif; font-size: 24px; font-weight: 700; margin-top: 10px; line-height: 1.15; overflow-wrap: anywhere; }
+.memcard .number { font-family: "IBM Plex Mono", monospace; font-size: 14px; color: #c9a24b; margin-top: 6px; letter-spacing: 0.05em; }
+.memcard .qrwrap { background: #f2f0e6; border-radius: 14px; padding: 12px; margin-top: 16px; display: inline-block; }
+.qr-fallback { color: #7a5a2a; font-size: 12px; max-width: 160px; }
+.memcard .footnote { color: #93998e; font-size: 11px; margin-top: 14px; }
+
+.card-actions { display: flex; gap: 8px; margin-top: 14px; }
+.ghost { flex: 1; border: 1px solid var(--line); background: var(--surface-2); color: var(--ink); border-radius: 14px; padding: 12px; font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }
+.ghost.accent { border-color: var(--gold); color: var(--gold); }
+.status-msg { color: var(--muted); font-size: 13px; margin-top: 10px; min-height: 16px; text-align: center; }
+
+.member { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-top: 1px solid var(--line); cursor: pointer; }
+.member:first-of-type { border-top: 0; }
+.member .num { font-family: "IBM Plex Mono", monospace; font-size: 13px; color: var(--gold); flex: none; width: 52px; }
+.member .info { flex: 1; min-width: 0; }
+.member .info .n { font-weight: 700; overflow-wrap: anywhere; }
+.member .info .s { font-size: 13px; color: var(--muted); }
+.member .del { flex: none; width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--line); background: transparent; color: var(--danger); font-size: 18px; cursor: pointer; }
+
+.inline-box { background: var(--surface-2); border-radius: 14px; padding: 12px; margin-top: 12px; }
+.inline-lbl { font-size: 14px; font-weight: 600; margin-bottom: 8px; }
+.row-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.small { flex: 1; min-width: 90px; border: 0; border-radius: 12px; padding: 10px; font: inherit; font-size: 13px; font-weight: 700; cursor: pointer; background: var(--surface); border: 1px solid var(--line); color: var(--ink); }
+.small.confirm { background: var(--danger); border-color: var(--danger); color: #2a0805; }
+
+.empty { color: var(--muted); text-align: center; padding: 20px 0; }
+.note { color: var(--muted); font-size: 13px; margin-top: 18px; }
+button:focus-visible, input:focus-visible { outline: 3px solid var(--gold); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1 class="display">Cartes de membre</h1>
+    <div class="tag">Nom, numéro et QR code d’adhésion</div>
+  </header>
+
+  <div class="stat"><b id="stCount">0</b><span>membre(s) enregistré(s)</span></div>
+
+  <section class="card">
+    <h2>Nouvelle carte</h2>
+    <div id="formArea"></div>
+  </section>
+
+  <section class="card">
+    <h2>Membres</h2>
+    <div id="memberList"></div>
+  </section>
+
+  <p class="note">Le téléphone et l’adresse n’apparaissent pas sur la carte : ils sont uniquement lisibles en scannant le QR code. Vos données restent sur cet appareil.</p>
+</main>
+
+<script>
+(function () {
+  var KEY = "cartes-membre-v1";
+  var state = { nextNumber: 1, members: [] };
+  var lastCreated = null;
+  var uiState = {};
+  var qrTmp = null; // conteneur caché pour générer les QR codes
+
+  function load() {
+    try {
+      var raw = localStorage.getItem(KEY);
+      if (raw) {
+        var d = JSON.parse(raw);
+        if (d && typeof d === "object" && Array.isArray(d.members)) state = d;
+      }
+    } catch (e) {}
+  }
+  function save() { try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {} }
+  function el(tag, cls, text) {
+    var e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text != null) e.textContent = text;
+    return e;
+  }
+  function padNumber(n) { return String(n).padStart(4, "0"); }
+  function fmtDate(iso) {
+    return new Date(iso).toLocaleDateString("fr-FR", { day: "numeric", month: "short", year: "numeric" });
+  }
+  function qrPayload(m) {
+    return "MEMBRE " + m.numero + "\n" + m.prenom + " " + m.nom +
+      "\nTel: " + (m.tel || "-") + "\nAdr: " + (m.adresse || "-");
+  }
+
+  function makeQR(container, text, size) {
+    container.textContent = "";
+    try {
+      if (!window.QRCode) { container.appendChild(el("div", "qr-fallback", "QR indisponible (bibliothèque non chargée)")); return; }
+      new window.QRCode(container, {
+        text: text, width: size, height: size,
+        colorDark: "#12160f", colorLight: "#f2f0e6",
+        correctLevel: window.QRCode.CorrectLevel.L
+      });
+    } catch (err) {
+      container.textContent = "";
+      container.appendChild(el("div", "qr-fallback", "QR indisponible : " + (err && err.message ? err.message : "erreur inconnue")));
+    }
+  }
+
+  function renderForm() {
+    var f = document.getElementById("formArea");
+    f.textContent = "";
+
+    if (lastCreated) {
+      attachCard(f, lastCreated, true);
+      var newBtn = el("button", "primary", "Nouvelle carte");
+      newBtn.type = "button";
+      newBtn.addEventListener("click", function () { lastCreated = null; renderForm(); });
+      f.appendChild(newBtn);
+      return;
+    }
+
+    var fs1 = el("fieldset", "fieldset");
+    fs1.appendChild(el("legend", null, "Identité (visible sur la carte)"));
+    var r1 = el("div", "row");
+    var nom = el("input"); nom.type = "text"; nom.id = "nom"; nom.maxLength = 30;
+    nom.placeholder = "Nom"; nom.setAttribute("aria-label", "Nom");
+    r1.appendChild(nom);
+    fs1.appendChild(r1);
+    var r1b = el("div", "row");
+    var prenom = el("input"); prenom.type = "text"; prenom.id = "prenom"; prenom.maxLength = 30;
+    prenom.placeholder = "Prénom"; prenom.setAttribute("aria-label", "Prénom");
+    r1b.appendChild(prenom);
+    fs1.appendChild(r1b);
+    f.appendChild(fs1);
+
+    var fs2 = el("fieldset", "fieldset");
+    fs2.appendChild(el("legend", null, "Coordonnées (uniquement dans le QR code)"));
+    var r2 = el("div", "row");
+    var tel = el("input"); tel.type = "tel"; tel.id = "tel";
+    tel.placeholder = "Téléphone"; tel.setAttribute("aria-label", "Téléphone");
+    r2.appendChild(tel);
+    fs2.appendChild(r2);
+    var r2b = el("div", "row");
+    var adresse = el("input"); adresse.type = "text"; adresse.id = "adresse"; adresse.maxLength = 60;
+    adresse.placeholder = "Adresse"; adresse.setAttribute("aria-label", "Adresse");
+    r2b.appendChild(adresse);
+    fs2.appendChild(r2b);
+    f.appendChild(fs2);
+
+    var btn = el("button", "primary", "Générer la carte");
+    btn.type = "button";
+    btn.addEventListener("click", createMember);
+    f.appendChild(btn);
+    f.appendChild(el("p", "form-error", formError || ""));
+    f.querySelector(".form-error").id = "formError";
+  }
+
+  var formError = "";
+  function createMember() {
+    var nom = document.getElementById("nom").value.trim();
+    var prenom = document.getElementById("prenom").value.trim();
+    var tel = document.getElementById("tel").value.trim();
+    var adresse = document.getElementById("adresse").value.trim();
+
+    formError = "";
+    if (!nom) { formError = "Entrez le nom."; renderForm(); return; }
+    if (!prenom) { formError = "Entrez le prénom."; renderForm(); return; }
+
+    var m = {
+      id: "m" + Date.now() + Math.floor(Math.random() * 1000),
+      numero: padNumber(state.nextNumber),
+      nom: nom, prenom: prenom, tel: tel, adresse: adresse,
+      createdAt: new Date().toISOString()
+    };
+    state.nextNumber += 1;
+    state.members.push(m);
+    save();
+    lastCreated = m;
+    formError = "";
+    render();
+  }
+
+  // Construit la carte visuelle (utilisée dans l’aperçu et dans la liste dépliée).
+  // Le QR est généré séparément, une fois la carte insérée dans la page, pour qu’une
+  // panne du QR n’empêche jamais d’afficher le nom, le numéro et les boutons.
+  function buildMemCard(m, withActions) {
+    var wrap = el("div");
+    var card = el("div", "memcard");
+    card.appendChild(el("div", "brand", "CARTE DE MEMBRE"));
+    card.appendChild(el("div", "name", m.prenom + " " + m.nom));
+    card.appendChild(el("div", "number mono", "N° " + m.numero));
+    var qrBox = el("div", "qrwrap");
+    card.appendChild(qrBox);
+    card.appendChild(el("div", "footnote", "Scanner pour voir les coordonnées · membre depuis " + fmtDate(m.createdAt)));
+    wrap.appendChild(card);
+
+    if (withActions) {
+      var actions = el("div", "card-actions");
+      var shareLabel = "Voir / partager le PDF";
+      var shareBtn = el("button", "ghost accent", shareLabel);
+      shareBtn.type = "button";
+      var statusMsg = el("p", "status-msg", "");
+      shareBtn.addEventListener("click", function () {
+        shareBtn.disabled = true;
+        shareBtn.textContent = "Préparation…";
+        shareCard(m, card, statusMsg, function () {
+          shareBtn.disabled = false;
+          shareBtn.textContent = shareLabel;
+        });
+      });
+      actions.appendChild(shareBtn);
+      wrap.appendChild(actions);
+      wrap.appendChild(statusMsg);
+    }
+    return { node: wrap, qrBox: qrBox, m: m };
+  }
+  function attachCard(parent, m, withActions) {
+    var built = buildMemCard(m, withActions);
+    parent.appendChild(built.node);
+    makeQR(built.qrBox, qrPayload(m), 160);
+    return built.node;
+  }
+
+  function getQrDataUrl(qrBox) {
+    var node = qrBox.querySelector("canvas, img");
+    if (!node) return null;
+    if (node.tagName === "CANVAS") return node.toDataURL("image/png");
+    // qrcodejs peut aussi produire une <img> : on la redessine dans un canvas pour obtenir les données.
+    var c = document.createElement("canvas");
+    c.width = node.naturalWidth || 160; c.height = node.naturalHeight || 160;
+    c.getContext("2d").drawImage(node, 0, 0, c.width, c.height);
+    return c.toDataURL("image/png");
+  }
+
+  function buildCardPDF(m, qrDataUrl) {
+    if (!window.jspdf || !window.jspdf.jsPDF) return null;
+    var doc = new window.jspdf.jsPDF({ unit: "pt", format: "a6" });
+    var w = doc.internal.pageSize.getWidth(), h = doc.internal.pageSize.getHeight();
+
+    doc.setFillColor(18, 22, 15); doc.rect(0, 0, w, h, "F");
+
+    doc.setTextColor(201, 162, 75);
+    doc.setFont("helvetica", "bold"); doc.setFontSize(11);
+    doc.text("CARTE DE MEMBRE", 32, 48);
+
+    doc.setTextColor(242, 240, 230);
+    doc.setFont("times", "bold"); doc.setFontSize(22);
+    var nameLines = doc.splitTextToSize(m.prenom + " " + m.nom, w - 64);
+    doc.text(nameLines, 32, 82);
+    var afterName = 82 + (nameLines.length - 1) * 24;
+
+    doc.setTextColor(201, 162, 75);
+    doc.setFont("courier", "bold"); doc.setFontSize(12);
+    doc.text("N° " + m.numero, 32, afterName + 26);
+
+    if (qrDataUrl) {
+      var qrSize = w - 120;
+      doc.setFillColor(242, 240, 230);
+      doc.roundedRect((w - qrSize) / 2 - 10, afterName + 44, qrSize + 20, qrSize + 20, 6, 6, "F");
+      doc.addImage(qrDataUrl, "PNG", (w - qrSize) / 2, afterName + 54, qrSize, qrSize);
+    }
+
+    doc.setTextColor(147, 153, 142);
+    doc.setFont("helvetica", "normal"); doc.setFontSize(8);
+    doc.text("Scanner pour voir les coordonnées", 32, h - 40);
+    doc.text("Membre depuis " + fmtDate(m.createdAt), 32, h - 28);
+
+    return doc;
+  }
+
+  function shareCard(m, cardNode, statusMsg, done) {
+    statusMsg.textContent = "Préparation du PDF…";
+    try {
+      var qrBox = cardNode.querySelector(".qrwrap");
+      var qrDataUrl = getQrDataUrl(qrBox);
+      var doc = buildCardPDF(m, qrDataUrl);
+      if (!doc) {
+        statusMsg.textContent = "Le PDF n’a pas pu être généré (bibliothèque non chargée). Vérifiez votre connexion internet.";
+        if (done) done();
+        return;
+      }
+      var blob = doc.output("blob");
+      var url = URL.createObjectURL(blob);
+      var win = window.open(url, "_blank");
+      if (!win) {
+        // Le navigateur a bloqué l’ouverture : on télécharge directement à la place.
+        doc.save("carte-" + m.numero + ".pdf");
+        statusMsg.textContent = "Le PDF a été téléchargé (l’ouverture a été bloquée).";
+      } else {
+        statusMsg.textContent = "PDF ouvert dans un nouvel onglet. Touchez l’icône de partage en haut pour l’envoyer.";
+      }
+      setTimeout(function () { URL.revokeObjectURL(url); }, 60000);
+    } catch (err) {
+      statusMsg.textContent = "Erreur : " + (err && err.message ? err.message : "impossible de générer le PDF.");
+    } finally {
+      if (done) done();
+    }
+  }
+
+  function renderList() {
+    document.getElementById("stCount").textContent = state.members.length;
+    var box = document.getElementById("memberList");
+    box.textContent = "";
+    if (!state.members.length) {
+      box.appendChild(el("p", "empty", "Aucun membre pour l’instant."));
+      return;
+    }
+    state.members.slice().reverse().forEach(function (m) {
+      var open = uiState[m.id] === "open";
+      var del = uiState[m.id] === "delete";
+
+      var row = el("div", "member");
+      row.appendChild(el("div", "num mono", m.numero));
+      var info = el("div", "info");
+      info.appendChild(el("div", "n", m.prenom + " " + m.nom));
+      info.appendChild(el("div", "s", "Depuis " + fmtDate(m.createdAt)));
+      row.appendChild(info);
+      var delBtn = el("button", "del", "×");
+      delBtn.type = "button";
+      delBtn.setAttribute("aria-label", "Supprimer " + m.prenom + " " + m.nom);
+      delBtn.addEventListener("click", function (e) { e.stopPropagation(); uiState[m.id] = del ? null : "delete"; renderList(); });
+      row.appendChild(delBtn);
+      row.addEventListener("click", function () { uiState[m.id] = open ? null : "open"; renderList(); });
+      box.appendChild(row);
+
+      if (open) {
+        try { attachCard(box, m, true); }
+        catch (err) { box.appendChild(el("p", "empty", "Carte indisponible : " + (err && err.message ? err.message : "erreur inconnue"))); }
+      }
+
+      if (del) {
+        var dbox = el("div", "inline-box");
+        dbox.appendChild(el("div", "inline-lbl", "Supprimer la carte de " + m.prenom + " " + m.nom + " ?"));
+        var ra = el("div", "row-actions");
+        var yes = el("button", "small confirm", "Oui, supprimer");
+        yes.type = "button";
+        yes.addEventListener("click", function () {
+          state.members = state.members.filter(function (x) { return x.id !== m.id; });
+          delete uiState[m.id];
+          save(); render();
+        });
+        var no = el("button", "small", "Non");
+        no.type = "button";
+        no.addEventListener("click", function () { delete uiState[m.id]; renderList(); });
+        ra.appendChild(yes); ra.appendChild(no);
+        dbox.appendChild(ra);
+        box.appendChild(dbox);
+      }
+    });
+  }
+
+  function render() { renderForm(); renderList(); }
+
+  load();
+  render();
+})();
+</script>
+</body>
+</html>
